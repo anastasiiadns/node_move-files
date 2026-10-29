@@ -1,23 +1,43 @@
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 
 function app(source, destination) {
+  if (!source || !destination) {
+    throw new Error('Source and destination are required');
+  }
+
   if (!fs.existsSync(source)) {
     throw new Error('Source does not exist');
   }
 
-  if (destination.endsWith('/') && !fs.existsSync(destination)) {
-    throw new Error('Destination directory does not exist');
+  if (!fs.statSync(source).isFile()) {
+    throw new Error('Source must be a file');
   }
 
-  if (fs.existsSync(destination) && fs.statSync(destination).isDirectory()) {
-    const fileName = path.basename(source);
-    const newPath = path.join(destination, fileName);
+  let newPath = destination;
 
-    fs.renameSync(source, newPath);
+  if (destination.endsWith('/')) {
+    if (!fs.existsSync(destination)) {
+      throw new Error('Destination directory does not exist');
+    }
+
+    newPath = path.join(destination, path.basename(source));
+  } else if (
+    fs.existsSync(destination) &&
+    fs.statSync(destination).isDirectory()
+  ) {
+    newPath = path.join(destination, path.basename(source));
   } else {
-    fs.renameSync(source, destination);
+    const parentDirectory = path.dirname(destination);
+
+    if (!fs.existsSync(parentDirectory)) {
+      throw new Error('Destination directory does not exist');
+    }
   }
+
+  fs.renameSync(source, newPath);
 }
 
 if (require.main === module) {
